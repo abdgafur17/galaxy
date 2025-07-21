@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulator Persamaan Drake: Perhitungan Keberadaan Alien</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --space-dark: #0b0d21;
+            --space-darker: #050714;
+            --neon-blue: #00f3ff;
+            --neon-purple: #bd00ff;
+            --neon-pink: #ff00c8;
+            --star-gold: #ffd700;
+            --text-light: #ffffff;
+            --text-dim: #a0a0c0;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--space-darker), var(--space-dark));
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Background stars */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration, 5s) infinite var(--delay, 0s);
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 2rem 0;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+        }
+
+        .card {
+            background: rgba(15, 20, 50, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(100, 150, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-pink), var(--neon-blue));
+            z-index: -1;
+            border-radius: 22px;
+            animation: borderAnimation 4s linear infinite;
+        }
+
+        @keyframes borderAnimation {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: var(--neon-blue);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h2 i {
+            color: var(--neon-pink);
+        }
+
+        .equation {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            border-left: 3px solid var(--neon-purple);
+        }
+
+        .equation h3 {
+            color: var(--neon-blue);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .equation p {
+            font-family: 'Courier New', monospace;
+            font-size: 1.8rem;
+            text-align: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            margin: 1rem 0;
+            color: var(--neon-blue);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+
+        .parameter {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: rgba(30, 40, 80, 0.4);
+            border-radius: 15px;
+        }
+
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .param-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--neon-blue);
+        }
+
+        .param-value {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-weight: bold;
+            color: var(--neon-pink);
+        }
+
+        .slider-container {
+            margin: 1rem 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 12px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, var(--space-dark), var(--neon-purple));
+            border-radius: 10px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: var(--neon-blue);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
+        }
+
+        .param-info {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-top: 0.5rem;
+            line-height: 1.5;
+        }
+
+        .result-container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(0, 20, 40, 0.6);
+            border-radius: 20px;
+            margin-top: 2rem;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            position: relative;
+        }
+
+        .result-title {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: var(--neon-blue);
+        }
+
+        .result-value {
+            font-size: 5rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(189, 0, 255, 0.5);
+        }
+
+        .result-text {
+            font-size: 1.3rem;
+            max-width: 700px;
+            margin: 1rem auto;
+            line-height: 1.6;
+        }
+
+        .visualization {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .galaxy {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+
+        .galaxy-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, var(--neon-pink), transparent 70%);
+            border-radius: 50%;
+            box-shadow: 0 0 50px var(--neon-pink);
+            animation: pulse 3s infinite;
+        }
+
+        .spiral-arm {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) rotate(var(--rotation));
+        }
+
+        .planet {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--color);
+            box-shadow: 0 0 15px var(--color);
+            animation: orbit var(--speed) linear infinite;
+            transform-origin: var(--origin-x) var(--origin-y);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+        }
+
+        @keyframes orbit {
+            from { transform: rotate(0deg) translateX(var(--radius)) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(var(--radius)) rotate(-360deg); }
+        }
+
+        .civilization-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--neon-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-blue);
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .chart-container {
+            height: 400px;
+            margin-top: 2rem;
+        }
+
+        .conclusion {
+            text-align: center;
+            padding: 3rem 0;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .neon-highlight {
+            color: var(--neon-blue);
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(100, 150, 255, 0.1);
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .result-value {
+                font-size: 3.5rem;
+            }
+            
+            .equation p {
+                font-size: 1.3rem;
+                overflow-x: auto;
+            }
+            
+            .visualization {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated stars background -->
+    <div class="stars" id="stars"></div>
+
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-stars"></i> Simulator Persamaan Drake</h1>
+            <p class="subtitle">Alat interaktif untuk menghitung kemungkinan keberadaan peradaban alien di galaksi Bima Sakti berdasarkan parameter astronomi dan astrobiologi</p>
+        </header>
+
+        <div class="card">
+            <h2><i class="fas fa-calculator"></i> Persamaan Drake</h2>
+            <div class="equation">
+                <h3>N = R* × f<sub>p</sub> × n<sub>e</sub> × f<sub>l</sub> × f<sub>i</sub> × f<sub>c</sub> × L</h3>
+                <p>N = R* · f<sub>p</sub> · n<sub>e</sub> · f<sub>l</sub> · f<sub>i</sub> · f<sub>c</sub> · L</p>
+            </div>
+            <p>Persamaan Drake dirumuskan oleh Dr. Frank Drake pada tahun 1961 untuk memperkirakan jumlah peradaban cerdas yang mungkin ada di galaksi kita. Setiap parameter mewakili faktor penting dalam perkembangan kehidupan dan kecerdasan.</p>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-sliders-h"></i> Parameter Perhitungan</h2>
+            <p>Ubah parameter di bawah ini untuk melihat bagaimana mereka mempengaruhi perkiraan jumlah peradaban alien di galaksi kita:</p>
+            
+            <div class="parameter">
+                <div class="param-header">
+                    <span class="param-title">R*: Tingkat pembentukan bintang di galaksi (bintang/tahun)</span>
+                    <span class="param-value" id="r-star-value">1.5</span>
+                </div>
+                <div class="slider-container">
+                    <input type="range" min="0.1" max="10" step="0.1" value="1.5" class="slider" id="r-star">
+                </div>
+                <div class="param-info">Rata-rata jumlah bintang baru yang terbentuk setiap tahun di galaksi Bima Sakti. Perkiraan saat ini: 1.5-3 bintang per tahun.</div>
+            </div>
+            
+            <div class="parameter">
+                <div class="param-header">
+                    <span class="param-title">f<sub>p</sub>: Fraksi bintang dengan sistem planet</span>
+                    <span class="param-value" id="fp-value">0.9</span>
+                </div>
+                <div class="slider-container">
+                    <input type="range" min="0.1" max="1" step="0.01" value="0.9" class="slider" id="fp">
+                </div>
+                <div class="param-info">Proporsi bintang yang memiliki planet. Pengamatan teleskop luar angkasa menunjukkan bahwa sebagian besar bintang memiliki sistem planet.</div>
+            </div>
+            
+            <div class="parameter">
+                <div class="param-header">
+                    <span class="param-title">n<sub>e</sub>: Planet layak huni per sistem bintang</span>
+                    <span class="param-value" id="ne-value">0.4</span>
+                </div>
+                <div class="slider-container">
+                    <input type="range" min="0.1" max="5" step="0.1" value="0.4" class="slider" id="ne">
+                </div>
+                <div class="param-info">Rata-rata jumlah planet di zona layak huni (Goldilocks Zone) per sistem planet. Perkiraan saat ini: 0.2-0.5 planet per sistem.</div>
+            </div>
+            
+            <div class="parameter">
+                <div class="param-header">
+                    <span class="param-title">f<sub>l</sub>: Fraksi planet yang mengembangkan kehidupan</span>
+                    <span class="param-value" id="fl-value">0.5</span>
+                </div>
+                <div class="slider-container">
+                    <input type="range" min="0.01" max="1" step="0.01" value="0.5" class="slider" id="fl">
+                </div>
+                <div class="param-info">Probabilitas bahwa kehidupan akan muncul di planet yang layak huni. Ini adalah parameter yang paling tidak pasti dalam persamaan.</div>
+            </div>
+            
+            <div class="parameter">
+                <div class="param-header">
+                    <span class="param-title">f<sub>i</sub>: Fraksi kehidupan yang mengembangkan kecerdasan</span>
+                    <span class="param-value" id="fi-value">0.3</span>
+                </div>
+                <div class="slider-container">
+                    <input type="range" min="0.01" max="1" step="0.01" value="0.3" class="slider" id="fi">
+                </div>
+                <div class="param-info">Probabilitas bahwa kehidupan akan berevolusi menjadi bentuk cerdas. Di Bumi, ini terjadi hanya sekali dalam 4 miliar tahun.</div>
+            </div>
+            
+            <div class="parameter">
+                <div class="param-header">
+                    <span class="param-title">f<sub>c</sub>: Fraksi peradaban yang mengembangkan teknologi komunikasi</span>
+                    <span class="param-value" id="fc-value">0.2</span>
+                </div>
+                <div class="slider-container">
+                    <input type="range" min="0.01" max="1" step="0.01" value="0.2" class="slider" id="fc">
+                </div>
+                <div class="param-info">Proporsi peradaban cerdas yang mengembangkan teknologi untuk berkomunikasi di ruang angkasa.</div>
+            </div>
+            
+            <div class="parameter">
+                <div class="param-header">
+                    <span class="param-title">L: Masa hidup peradaban teknologi (tahun)</span>
+                    <span class="param-value" id="l-value">1000</span>
+                </div>
+                <div class="slider-container">
+                    <input type="range" min="100" max="1000000" step="100" value="1000" class="slider" id="l">
+                </div>
+                <div class="param-info">Rata-rata lama waktu peradaban mengirimkan sinyal yang dapat dideteksi ke ruang angkasa. Peradaban kita baru melakukannya selama ~100 tahun.</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-chart-bar"></i> Hasil Perhitungan</h2>
+            
+            <div class="result-container">
+                <div class="result-title">Jumlah Peradaban Alien di Galaksi Bima Sakti:</div>
+                <div class="result-value" id="result">4.86</div>
+                <div class="result-text" id="interpretation">Berdasarkan parameter yang dipilih, kemungkinan ada sekitar 5 peradaban alien yang dapat berkomunikasi di galaksi kita saat ini.</div>
+            </div>
+            
+            <div class="visualization">
+                <div class="galaxy" id="galaxy">
+                    <!-- Galaxy visualization will be generated here -->
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="parameterChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-lightbulb"></i> Kesimpulan</h2>
+            <div class="conclusion">
+                <p>Persamaan Drake bukanlah jawaban pasti, tetapi kerangka kerja untuk memahami <span class="neon-highlight">probabilitas keberadaan alien</span>. Hasil simulasi ini menunjukkan bahwa:</p>
+                <p>Bahkan dengan asumsi optimis tentang pembentukan kehidupan dan kecerdasan, jumlah peradaban yang dapat berkomunikasi mungkin <span class="neon-highlight">sangat sedikit</span> dan tersebar luas di galaksi kita yang luas.</p>
+                <p>Ketidakpastian terbesar terletak pada <span class="neon-highlight">durasi peradaban teknologi (L)</span> dan kemungkinan munculnya kehidupan cerdas. Jika peradaban cerdas langka atau berumur pendek, kita mungkin benar-benar sendirian - setidaknya di galaksi kita.</p>
+                <p>Misi-misi seperti Teleskop Luar Angkasa James Webb dan proyek SETI terus mencari jawaban atas pertanyaan abadi ini. Sampai kita memiliki data lebih banyak, keberadaan alien tetap menjadi salah satu <span class="neon-highlight">misteri terbesar sains</span>.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Simulator Persamaan Drake | Dibuat dengan data astronomi terkini | © 2023 Pencarian Kecerdasan Ekstraterestrial</p>
+    </div>
+
+    <script>
+        // Generate stars background
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starsCount = 200;
+            
+            for (let i = 0; i < starsCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                // Random position
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                star.style.left = `${x}%`;
+                star.style.top = `${y}%`;
+                
+                // Random size
+                const size = Math.random() * 3;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                
+                // Random animation properties
+                star.style.setProperty('--duration', `${Math.random() * 5 + 3}s`);
+                star.style.setProperty('--delay', `${Math.random() * 5}s`);
+                
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        // Create galaxy visualization
+        function createGalaxy() {
+            const galaxy = document.getElementById('galaxy');
+            galaxy.innerHTML = '<div class="galaxy-core"></div>';
+            
+            // Create spiral arms
+            for (let i = 0; i < 4; i++) {
+                const arm = document.createElement('div');
+                arm.classList.add('spiral-arm');
+                arm.style.width = `${120 + i * 80}px`;
+                arm.style.height = `${120 + i * 80}px`;
+                arm.style.setProperty('--rotation', `${i * 90}deg`);
+                galaxy.appendChild(arm);
+            }
+            
+            // Create stars and planets
+            for (let i = 0; i < 150; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                // Position in a spiral pattern
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 20 + Math.random() * 100;
+                const x = 125 + Math.cos(angle) * distance;
+                const y = 125 + Math.sin(angle) * distance;
+                
+                star.style.left = `${x}px`;
+                star.style.top = `${y}px`;
+                
+                // Random size
+                const size = Math.random() * 2;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                
+                galaxy.appendChild(star);
+            }
+        }
+        
+        // Calculate Drake Equation
+        function calculateDrake() {
+            const rStar = parseFloat(document.getElementById('r-star').value);
+            const fp = parseFloat(document.getElementById('fp').value);
+            const ne = parseFloat(document.getElementById('ne').value);
+            const fl = parseFloat(document.getElementById('fl').value);
+            const fi = parseFloat(document.getElementById('fi').value);
+            const fc = parseFloat(document.getElementById('fc').value);
+            const l = parseFloat(document.getElementById('l').value);
+            
+            const n = rStar * fp * ne * fl * fi * fc * l;
+            
+            return n;
+        }
+        
+        // Update result display
+        function updateResult() {
+            const n = calculateDrake();
+            const resultElement = document.getElementById('result');
+            const interpretationElement = document.getElementById('interpretation');
+            
+            // Format the number for display
+            let displayValue;
+            if (n >= 1000000) {
+                displayValue = (n / 1000000).toFixed(2) + ' juta';
+            } else if (n >= 1000) {
+                displayValue = (n / 1000).toFixed(2) + ' ribu';
+            } else {
+                displayValue = n.toFixed(2);
+            }
+            
+            resultElement.textContent = displayValue;
+            
+            // Update interpretation text
+            let interpretation = '';
+            if (n < 0.1) {
+                interpretation = 'Berdasarkan parameter yang dipilih, kemungkinan kita sendirian di galaksi sangat tinggi.';
+            } else if (n < 1) {
+                interpretation = 'Berdasarkan parameter yang dipilih, kemungkinan hanya ada satu peradaban di galaksi (kita sendiri) atau beberapa yang sangat jarang.';
+            } else if (n < 10) {
+                interpretation = `Berdasarkan parameter yang dipilih, kemungkinan ada sekitar ${Math.round(n)} peradaban alien yang dapat berkomunikasi di galaksi kita saat ini.`;
+            } else if (n < 100) {
+                interpretation = `Berdasarkan parameter yang dipilih, kemungkinan ada puluhan peradaban alien di galaksi kita.`;
+            } else if (n < 1000) {
+                interpretation = `Berdasarkan parameter yang dipilih, kemungkinan ada ratusan peradaban alien di galaksi kita.`;
+            } else {
+                interpretation = `Berdasarkan parameter yang dipilih, galaksi kita mungkin penuh dengan kehidupan cerdas!`;
+            }
+            
+            interpretationElement.textContent = interpretation;
+            
+            // Update visualization
+            updateVisualization(n);
+            
+            // Update chart
+            updateChart();
+        }
+        
+        // Update galaxy visualization with civilizations
+        function updateVisualization(n) {
+            const galaxy = document.getElementById('galaxy');
+            
+            // Remove existing civilization dots
+            const existingDots = document.querySelectorAll('.civilization-dot');
+            existingDots.forEach(dot => dot.remove());
+            
+            // Calculate number of dots to display (capped at 20 for visibility)
+            const dotCount = Math.min(Math.round(n), 20);
+            
+            // Add new civilization dots
+            for (let i = 0; i < dotCount; i++) {
+                const dot = document.createElement('div');
+                dot.classList.add('civilization-dot');
+                
+                // Position randomly in the galaxy
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 20 + Math.random() * 100;
+                const x = 125 + Math.cos(angle) * distance;
+                const y = 125 + Math.sin(angle) * distance;
+                
+                dot.style.left = `${x}px`;
+                dot.style.top = `${y}px`;
+                
+                // Random animation delay
+                dot.style.animationDelay = `${Math.random() * 2}s`;
+                
+                galaxy.appendChild(dot);
+            }
+        }
+        
+        // Update chart with current parameters
+        function updateChart() {
+            const ctx = document.getElementById('parameterChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (window.drakeChart) {
+                window.drakeChart.destroy();
+            }
+            
+            // Get current parameter values
+            const rStar = parseFloat(document.getElementById('r-star').value);
+            const fp = parseFloat(document.getElementById('fp').value);
+            const ne = parseFloat(document.getElementById('ne').value);
+            const fl = parseFloat(document.getElementById('fl').value);
+            const fi = parseFloat(document.getElementById('fi').value);
+            const fc = parseFloat(document.getElementById('fc').value);
+            const l = parseFloat(document.getElementById('l').value);
+            
+            // Calculate cumulative product for each step
+            const cumulative = [
+                rStar,
+                rStar * fp,
+                rStar * fp * ne,
+                rStar * fp * ne * fl,
+                rStar * fp * ne * fl * fi,
+                rStar * fp * ne * fl * fi * fc,
+                rStar * fp * ne * fl * fi * fc * l
+            ];
+            
+            // Create chart
+            window.drakeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['R*', 'fₚ', 'nₑ', 'fₗ', 'fᵢ', 'f꜀', 'L'],
+                    datasets: [{
+                        label: 'Nilai Kumulatif',
+                        data: cumulative,
+                        borderColor: '#00f3ff',
+                        backgroundColor: 'rgba(0, 243, 255, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#bd00ff',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'logarithmic',
+                            min: 0.001,
+                            title: {
+                                display: true,
+                                text: 'Nilai Kumulatif (skala logaritmik)',
+                                color: '#a0a0c0'
+                            },
+                            grid: {
+                                color: 'rgba(100, 100, 200, 0.1)'
+                            },
+                            ticks: {
+                                color: '#a0a0c0'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Parameter Persamaan Drake',
+                                color: '#a0a0c0'
+                            },
+                            grid: {
+                                color: 'rgba(100, 100, 200, 0.1)'
+                            },
+                            ticks: {
+                                color: '#a0a0c0'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Nilai kumulatif: ${context.parsed.y.toFixed(4)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            createGalaxy();
+            updateResult();
+            
+            // Add event listeners to all sliders
+            const sliders = document.querySelectorAll('.slider');
+            sliders.forEach(slider => {
+                slider.addEventListener('input', function() {
+                    // Update the corresponding value display
+                    const valueElement = document.getElementById(`${this.id}-value`);
+                    valueElement.textContent = this.value;
+                    
+                    // Update the result
+                    updateResult();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
